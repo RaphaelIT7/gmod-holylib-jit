@@ -2,7 +2,12 @@
 HolyLib has some LuaJIT changes.<br>
 These were previously inside the https://github.com/RaphaelIT7/gmod-lua-shared though we moved them here since we should have never done them over there in the first place.<br>
 
-Included changes:
+Update:<br>
+I've now moved it into this fork of LuaJIT just to make updating it easier.<br>
+And it does also provide a better overview.<br>
+HolyLib builds fully work just fine outside GMod too, it does not depend on it!<br>
+
+Included changes:<br>
 \- [+] Added the ability to concat bool values.<br>
 \- [+] Added block debug functionality for function to prevent someone from getting functions they shouldn't have.<br>
 \- [+] Added read only table functionality to prevent someone from modifying a table while its being used by another thread<br>
