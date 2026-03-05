@@ -7,3 +7,4 @@ Included changes:
 \- [+] Experimentally implemented `Sink optimization` (See https://github.com/LuaJIT/LuaJIT/pull/652)<br>
 \- [+] Specialize to the global environment change (See https://github.com/LuaJIT/LuaJIT/pull/910)<br>
 \- [+] Compile unpack() given constant start and end indices (See https://github.com/LuaJIT/LuaJIT/pull/910)<br>
+\- [+] Experimentally implemented `Reduce method overhead in loops by specializing to metatables` (See https://github.com/LuaJIT/LuaJIT/pull/899)<br>
