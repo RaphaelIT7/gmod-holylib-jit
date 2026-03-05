@@ -6,3 +6,4 @@ Included changes:
 \- [+] Implemented fix for FFI Sandwich/LUA VM re-entry through JIT trace (See https://github.com/LuaJIT/LuaJIT/pull/1165)<br>
 \- [+] Experimentally implemented `Sink optimization` (See https://github.com/LuaJIT/LuaJIT/pull/652)<br>
 \- [+] Specialize to the global environment change (See https://github.com/LuaJIT/LuaJIT/pull/910)<br>
+\- [+] Compile unpack() given constant start and end indices (See https://github.com/LuaJIT/LuaJIT/pull/910)<br>
