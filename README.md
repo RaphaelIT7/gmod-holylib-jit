@@ -12,5 +12,6 @@ Included changes:
 \- [+] Specialize to the global environment change (See https://github.com/LuaJIT/LuaJIT/pull/910)<br>
 \- [+] Compile unpack() given constant start and end indices (See https://github.com/LuaJIT/LuaJIT/pull/910)<br>
 \- [+] Experimentally implemented `Reduce method overhead in loops by specializing to metatables` (See https://github.com/LuaJIT/LuaJIT/pull/899)<br>
+\- [+] Added JIT support for userdata meta- & usertable access<br>
 \- [#] Made `cdata` return the type as `LUA_TUSERDATA` so that we can more easily allow FFI -> C calls without needing to hook 10 functions (& the TypeID also conflicted with gmod)<br>
 \- [#] Improved `GMODLUA_GetUserType` to directly do it's stuff without using the Lua stack<br>
