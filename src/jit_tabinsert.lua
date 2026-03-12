@@ -28,41 +28,13 @@ end
 
 generate_trace()
 
-
-local proxy = newproxy()
-give_userdata_table(proxy)
-
-proxy.test = print
-proxy.helloWorld = "Test"
-
-proxy:test()
-print(proxy.helloWorld)
-
-local test1_dat = {}
-local test1 = newproxy()
-debug.setmetatable(test1, {
-	__newindex = function(self, a, b)
-		rawset(test1_dat, a, b)
-	end,
-	lol = function()
-		print("xD")
-	end,
-})
-
 jit.flush()
-local loopCount = 1000000
-local a = os.clock()
-for k=1, loopCount do
-	test1.test = 123
+local res = {}
+local res2 = {}
+for k=1, 1000 do
+	res2[k] = table.insert(res, true)
 end
-print(os.clock() - a)
 
-local test2 = newproxy()
-give_userdata_table(test2)
-jit.flush()
-local a = os.clock()
-for k=1, loopCount do
-	test2.test = 123
+for k=1, 1000 do
+	print(k, res2[k])
 end
-print(test2.test)
-print(os.clock() - a)

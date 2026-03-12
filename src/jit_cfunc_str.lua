@@ -28,41 +28,42 @@ end
 
 generate_trace()
 
+jit.flush()
+local jit_func = test_jitcfunc()
+for k=1, 100 do
+	jit_func(5, 10, 15)
+end
 
+jit.flush()
+local jit_func2 = test_jitcfunc2()
+for k=1, 100 do
+	jit_func2("hello", "world")
+end
+
+jit.flush()
 local proxy = newproxy()
-give_userdata_table(proxy)
+local mt = {}
+debug.setmetatable(proxy, mt)
 
-proxy.test = print
-proxy.helloWorld = "Test"
-
-proxy:test()
-print(proxy.helloWorld)
-
-local test1_dat = {}
-local test1 = newproxy()
-debug.setmetatable(test1, {
-	__newindex = function(self, a, b)
-		rawset(test1_dat, a, b)
-	end,
-	lol = function()
-		print("xD")
-	end,
-})
+local jit_func3 = test_jitcfunc3()
+for k=1, 100 do
+	local tab = jit_func3(proxy)
+	print(mt, tab, mt == tab)
+end
 
 jit.flush()
-local loopCount = 1000000
-local a = os.clock()
-for k=1, loopCount do
-	test1.test = 123
+local jit_func4 = test_jitcfunc4()
+for k=1, 100 do
+	jit_func4()
 end
-print(os.clock() - a)
 
-local test2 = newproxy()
-give_userdata_table(test2)
 jit.flush()
-local a = os.clock()
-for k=1, loopCount do
-	test2.test = 123
+local val = {}
+local jit_func5 = test_jitcfunc5()
+for k=1, 100 do
+	val[k] = jit_func5()
 end
-print(test2.test)
-print(os.clock() - a)
+
+for k=1, 100 do
+	print(val[k])
+end

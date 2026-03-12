@@ -28,41 +28,18 @@ end
 
 generate_trace()
 
-
-local proxy = newproxy()
-give_userdata_table(proxy)
-
-proxy.test = print
-proxy.helloWorld = "Test"
-
-proxy:test()
-print(proxy.helloWorld)
-
-local test1_dat = {}
-local test1 = newproxy()
-debug.setmetatable(test1, {
-	__newindex = function(self, a, b)
-		rawset(test1_dat, a, b)
-	end,
-	lol = function()
-		print("xD")
-	end,
-})
+local loopCount = 25
 
 jit.flush()
-local loopCount = 1000000
+local res = {}
+local jit_func = test_jitcfunc6()
 local a = os.clock()
 for k=1, loopCount do
-	test1.test = 123
+	res[k] = jit_func()
 end
-print(os.clock() - a)
+print("JITd CFunc:", os.clock() - a)
+print("Done")
 
-local test2 = newproxy()
-give_userdata_table(test2)
-jit.flush()
-local a = os.clock()
 for k=1, loopCount do
-	test2.test = 123
+	print(res[k])
 end
-print(test2.test)
-print(os.clock() - a)
