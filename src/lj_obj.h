@@ -354,12 +354,17 @@ typedef struct GCstr {
 /* Userdata object. Payload follows. */
 typedef struct GCudata {
   GCHeader;
-  uint8_t udtype;	/* Userdata type. */
-  uint8_t flags;
+  union {
+    struct {
+      uint8_t udtype;	/* Userdata type. */
+      uint8_t flags;
+    };
+    uint16_t guard; /* Useful for guarding on both type & flags */
+  };
   GCRef env;		/* Should be at same offset in GCfunc. */
   MSize len;		/* Size of payload. */
   GCRef metatable;	/* Must be at same offset in GCtab. */
-  uint32_t align1;	/* To force 8 byte alignment of the payload. */
+  uint32_t align1;	/* To force 8 byte alignment of the payload. In HolyLib we make use of this though to store data - no bytes are wasted :3 */
 } GCudata;
 
 /* Userdata types. */
@@ -493,16 +498,20 @@ typedef struct GCupval {
 typedef struct CFuncCallInfo {
   ASMFunction func;   /* Function pointer. 0 if this entire struct wasn't set yet */
   uint32_t flags;   /* Number of arguments and flags. */
-  lua_CFunctionInfoType argType[32]; /* argument types */
-  lua_CFunctionInfoType retType;
+  lua_TraceRecorderType argType[32]; /* argument types */
+  lua_TraceRecorderType retType;
   uint8_t givestate : 1;
   uint8_t allowoptout : 1;
+  uint8_t retbool : 1;
+  uint8_t exactargs : 1;
 } CFuncCallInfo;
 
+/* We allow up to 10 alternative functions */
+#define MAX_CFUNC_CALLINFOS 10
 typedef struct GCfuncC {
   GCfuncHeader;
   lua_CFunction f;	/* C function to be called. */
-  CFuncCallInfo callinfo;
+  CFuncCallInfo callinfo[MAX_CFUNC_CALLINFOS];
   TValue upvalue[1];  /* Array of upvalues (TValue). */
 } GCfuncC;
 

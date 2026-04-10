@@ -715,11 +715,12 @@ LUA_API int lua_userdata_setusertable(lua_State *L, int idx, int set)
   cTValue *o = index2adr(L, idx);
   if (tvisudata(o))
   {
-    GCudata* ud = udataV(o);
+    GCudata *ud = udataV(o);
     if (set) {
       ud->flags |= LJ_UDATA_FLAG_USERTABLE;
-      setgcref(ud->env, obj2gco(lj_tab_new(L, 0, 0)));
-      lj_gc_anybarriert(L, ud);
+      GCtab *t = lj_tab_new(L, 0, 0);
+      setgcref(ud->env, obj2gco(t));
+      lj_gc_objbarrier(L, ud, t);
     } else {
       ud->flags &= ~LJ_UDATA_FLAG_USERTABLE;
       setgcrefnull(ud->env);
@@ -747,78 +748,86 @@ LUA_API int lua_userdata_setmetaaccess(lua_State *L, int idx, int set)
   return 0;
 }
 
-// RaphaelIT7: This is HolyLib's __index method, I'm trying to see if I can get it JIT'd :hehe:
-LUA_API int lua_testudataindex(lua_State* L, int idx)
+static int lua_CFunc_info(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
 {
-  TValue* val = index2adr(L, idx);
-  if (val && tvisudata(val))
+  for (int infoIDX=0; infoIDX<MAX_CFUNC_CALLINFOS; ++infoIDX)
   {
-    GCudata* udata = udataV(val);
-    GCtab* meta = tabref(udata->metatable);
-    if (meta)
-    {
-      TValue* tabVal = (TValue*)lj_tab_get(L, meta, L->top-1);
-      if (!tvisnil(tabVal))
+    if (!fn->c.callinfo[infoIDX].func)
+      continue;
+
+    int args = 0;
+    int invalid = 0;
+    for (args=0; args<LUA_CFUNCINFO_MAXARGS; ++args) {
+      if (info->argType[args] == TR_TYPE_VOID && fn->c.callinfo[infoIDX].argType[args] == TR_TYPE_VOID)
+        break;
+
+      if (fn->c.callinfo[infoIDX].argType[args] != info->argType[args])
       {
-        copyTV(L, L->top++, tabVal);
-        return 1;
+        invalid = 1;
+        break;
       }
     }
 
-    settabV(L, L->top, tabref(udata->env));
-    incr_top(L);
-    lua_pushvalue(L, -1);
-    lua_pushvalue(L, 2);
-    if (!(lua_type(L, -1) != 0))
-      lua_pushnil(L);
-
-    lua_remove(L, -2);
-    return 1;
+    if (invalid == 0)
+      return infoIDX;
   }
 
-  return 0;
+  for (int infoIDX=0; infoIDX<MAX_CFUNC_CALLINFOS; ++infoIDX)
+  {
+    if (!fn->c.callinfo[infoIDX].func)
+      return infoIDX;
+  }
+
+  return -1;
 }
 
 static void lua_fillCFuncInfo(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
 {
+  int infoIDX = lua_CFunc_info(L, fn, info);
+  if (infoIDX == -1)
+  	return;
+
   // Technically not required (& we remove/skip it anyways below) - but I do require it, you should be AWARE of the args!
-  if (info->givestate && info->argType[0] != CFUNC_TYPE_LUASTATE)
+  if (info->givestate && info->argType[0] != TR_TYPE_LUASTATE)
     return;
 
-  fn->c.callinfo.func = info->asmFunc;
-  fn->c.callinfo.retType = info->retType;
+  fn->c.callinfo[infoIDX].func = (ASMFunction)info->asmFunc;
+  fn->c.callinfo[infoIDX].retType = info->retType;
   for (int args=0; args<LUA_CFUNCINFO_MAXARGS; ++args) {
-    fn->c.callinfo.argType[args] = info->argType[args];
-    if (info->argType[args] == CFUNC_TYPE_VOID) {
-      fn->c.callinfo.flags |= args;
+    fn->c.callinfo[infoIDX].argType[args] = info->argType[args];
+    if (info->argType[args] == TR_TYPE_VOID) {
+      fn->c.callinfo[infoIDX].flags |= args;
       break;
     }
   }
 
-  fn->c.callinfo.flags |= CCI_CALL_S;
+  fn->c.callinfo[infoIDX].retbool = info->retbool;
+  fn->c.callinfo[infoIDX].exactargs = info->exactargs;
+
+  fn->c.callinfo[infoIDX].flags |= CCI_CALL_S;
   switch (info->callconv) {
     case CFUNC_CALLCONV_FASTCALL:
-      fn->c.callinfo.flags |= CCI_CC_FASTCALL;
+      fn->c.callinfo[infoIDX].flags |= CCI_CC_FASTCALL;
       break;
     case CFUNC_CALLCONV_STDCALL:
-      fn->c.callinfo.flags |= CCI_CC_STDCALL;
+      fn->c.callinfo[infoIDX].flags |= CCI_CC_STDCALL;
       break;
     case CFUNC_CALLCONV_THISCALL:
-      fn->c.callinfo.flags |= CCI_CC_THISCALL;
+      fn->c.callinfo[infoIDX].flags |= CCI_CC_THISCALL;
       break;
     default:
-      fn->c.callinfo.flags |= CCI_CC_CDECL;
+      fn->c.callinfo[infoIDX].flags |= CCI_CC_CDECL;
       break;
   }
 
   if (info->canerror)
-    fn->c.callinfo.flags |= CCI_T;
+    fn->c.callinfo[infoIDX].flags |= CCI_T;
 
   if (info->givestate)
-    fn->c.callinfo.givestate = 1; // We cannot use CCI_L as it seems very unreliable...
+    fn->c.callinfo[infoIDX].givestate = 1; // We cannot use CCI_L as it seems very unreliable...
 
   if (info->allowoptout)
-    fn->c.callinfo.allowoptout = 1;
+    fn->c.callinfo[infoIDX].allowoptout = 1;
 }
 
 LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)
