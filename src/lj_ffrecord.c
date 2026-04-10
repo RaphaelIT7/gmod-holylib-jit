@@ -1654,6 +1654,15 @@ static void LJ_FASTCALL recff_buffer_decode(jit_State *J, RecordFFData *rd)
 
 /* -- Table library fast functions ---------------------------------------- */
 
+static void LJ_FASTCALL recff_table_maxn(jit_State *J, RecordFFData *rd)
+{
+  TRef tr = J->base[0];
+  if (tref_istab(tr)) {
+    rd->nres = 1;
+    J->base[0] = lj_ir_call(J, IRCALL_lj_tab_maxn, tr);
+  }
+}
+
 static void LJ_FASTCALL recff_table_insert(jit_State *J, RecordFFData *rd)
 {
   RecordIndex ix;
@@ -1812,8 +1821,10 @@ static void LJ_FASTCALL recff_debug_getfenv(jit_State *J, RecordFFData *rd)
   TRef envref;
   TRef tr = J->base[0];
   if (tref_isfunc(tr)) {
-    env = tabref(funcV(&rd->argv[0])->c.env);
-    envref = emitir(IRT(IR_FLOAD, IRT_TAB), tr, IRFL_FUNC_ENV);
+    recff_nyiu(J, rd);
+    return;
+    //env = tabref(funcV(&rd->argv[0])->c.env);
+    //envref = emitir(IRT(IR_FLOAD, IRT_TAB), tr, IRFL_FUNC_ENV);
   } else if (tref_isthread(tr)) {
     env = tabref(threadV(&rd->argv[0])->env);
     envref = emitir(IRT(IR_FLOAD, IRT_TAB), tr, IRFL_THREAD_ENV);
