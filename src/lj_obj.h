@@ -505,6 +505,7 @@ typedef struct GCupval {
 // Extented version of CCallInfo - See lj_ircall.h
 typedef struct CFuncCallInfo {
   ASMFunction func;   /* Function pointer. 0 if this entire struct wasn't set yet */
+  lua_TraceRecorderFunction traceFunc;
   uint32_t flags;   /* Number of arguments and flags. */
   lua_TraceRecorderType argType[32]; /* argument types */
   lua_TraceRecorderType retType;
