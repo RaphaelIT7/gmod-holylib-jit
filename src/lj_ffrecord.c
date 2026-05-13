@@ -717,6 +717,26 @@ static void LJ_FASTCALL recff_xpcall(jit_State *J, RecordFFData *rd)
   }  /* else: Interpreter will throw. */
 }
 
+static void LJ_FASTCALL recff_newproxy(jit_State *J, RecordFFData *rd)
+{
+  TRef tr = J->base[0];
+  if (!tref_isnil(tr) && !tref_isfalse(tr)) {
+    recff_nyiu(J, rd);
+    return;
+  }
+
+  TRef ud = emitir(IRTG(IR_UDNEW, IRT_UDATA), lj_ir_kint(J, sizeof(GMODudata)), lj_ir_knull(J, IRT_TAB));
+
+  TRef dataref = emitir(IRT(IR_FREF, IRT_PTR), ud, IRFL_GMOD_UDATA_DATA_DIRECT);
+  emitir(IRT(IR_FSTORE, IRT_PTR), dataref, lj_ir_knull(J, IRT_PTR));
+
+  TRef typeref = emitir(IRT(IR_FREF, IRT_U8), ud, IRFL_GMOD_UDATA_TYPE_DIRECT);
+  emitir(IRT(IR_FSTORE, IRT_U8), typeref, lj_ir_kint(J, 7)); // 7 = (type) userdata
+
+  J->base[0] = ud;
+  UNUSED(rd);
+}
+
 static void LJ_FASTCALL recff_getfenv(jit_State *J, RecordFFData *rd)
 {
   TRef tr = J->base[0];
