@@ -324,10 +324,14 @@ typedef struct GCudata {
   GCHeader;
   uint8_t udtype;	/* Userdata type. */
   uint8_t unused2;
-  GCRef env;		/* Should be at same offset in GCfunc. */
+#if LJ_GC64
   MSize len;		/* Size of payload. */
+#endif
+  GCRef env;		/* Should be at same offset in GCfunc. */
   GCRef metatable;	/* Must be at same offset in GCtab. */
-  uint32_t align1;	/* To force 8 byte alignment of the payload. */
+#if !LJ_GC64
+  MSize len;		/* Size of payload. */
+#endif
 } GCudata;
 
 /* Userdata types. */
@@ -374,12 +378,14 @@ typedef struct GCproto {
   uint8_t numparams;	/* Number of parameters. */
   uint8_t framesize;	/* Fixed frame size. */
   MSize sizebc;		/* Number of bytecode instructions. */
-#if LJ_GC64
-  uint32_t unused_gc64;
-#endif
-  GCRef gclist;
   MRef k;		/* Split constant array (points to the middle). */
+#if !LJ_GC64
+  GCRef gclist;
+#endif
   MRef uv;		/* Upvalue list. local slot|0x8000 or parent uv idx. */
+#if LJ_GC64
+  GCRef gclist;
+#endif
   MSize sizekgc;	/* Number of collectable constants. */
   MSize sizekn;		/* Number of lua_Number constants. */
   MSize sizept;		/* Total size including colocated arrays. */
@@ -433,6 +439,7 @@ typedef struct GCupval {
   GCHeader;
   uint8_t closed;	/* Set if closed (i.e. uv->v == &uv->u.value). */
   uint8_t immutable;	/* Immutable value. */
+  uint32_t dhash;	/* Disambiguation hash: dh1 != dh2 => cannot alias. */
   union {
     TValue tv;		/* If closed: the value itself. */
     struct {		/* If open: double linked list, anchored at thread. */
@@ -441,7 +448,6 @@ typedef struct GCupval {
     };
   };
   MRef v;		/* Points to stack slot (open) or above (closed). */
-  uint32_t dhash;	/* Disambiguation hash: dh1 != dh2 => cannot alias. */
 } GCupval;
 
 #define uvprev(uv_)	(&gcref((uv_)->prev)->uv)
@@ -453,7 +459,7 @@ typedef struct GCupval {
 /* Common header for functions. env should be at same offset in GCudata. */
 #define GCfuncHeader \
   GCHeader; uint8_t ffid; uint8_t nupvalues; \
-  GCRef env; GCRef gclist; MRef pc
+  GCRef env; MRef pc; GCRef gclist
 
 typedef struct GCfuncC {
   GCfuncHeader;
@@ -500,8 +506,8 @@ typedef struct GCtab {
   uint8_t nomm;		/* Negative cache for fast metamethods. */
   int8_t colo;		/* Array colocation. */
   MRef array;		/* Array part. */
-  GCRef gclist;
   GCRef metatable;	/* Must be at same offset in GCudata. */
+  GCRef gclist;
   MRef node;		/* Hash part. */
   uint32_t asize;	/* Size of array part (keys [0, asize-1]). */
   uint32_t hmask;	/* Hash part mask (size of hash part - 1). */
@@ -640,8 +646,8 @@ typedef struct global_State {
   uint8_t hookmask;	/* Hook mask. */
   uint8_t dispatchmode;	/* Dispatch mode. */
   uint8_t vmevmask;	/* VM event mask. */
-  StrInternState str;	/* String interning. */
   volatile int32_t vmstate;  /* VM state or current JIT code trace number. */
+  StrInternState str;	/* String interning. */
   GCRef mainthref;	/* Link to main thread. */
   SBuf tmpbuf;		/* Temporary string buffer. */
   TValue tmptv, tmptv2;	/* Temporary TValues. */
@@ -693,8 +699,8 @@ struct lua_State {
   uint8_t dummy_ffid;	/* Fake FF_C for curr_funcisL() on dummy frames. */
   uint8_t status;	/* Thread status. */
   MRef glref;		/* Link to global state. */
-  GCRef gclist;		/* GC chain. */
   TValue *base;		/* Base of currently executing function. */
+  GCRef gclist;		/* GC chain. */
   TValue *top;		/* First free slot in the stack. */
   MRef maxstack;	/* Last free slot in the stack. */
   MRef stack;		/* Stack base. */
@@ -733,8 +739,8 @@ typedef struct GChead {
   uint8_t unused1;
   uint8_t unused2;
   GCRef env;
-  GCRef gclist;
   GCRef metatable;
+  GCRef gclist;
 } GChead;
 
 /* The env field SHOULD be at the same offset for all GC objects. */
