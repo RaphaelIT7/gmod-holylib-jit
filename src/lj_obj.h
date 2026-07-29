@@ -730,7 +730,7 @@ typedef struct global_State {
   MRef ctype_state;	/* Pointer to C type state. */
   PRNGState prng;	/* Global PRNG state. */
   GCRef gcroot[GCROOT_MAX];  /* GC roots. */
-  uint32_t mxcsr;
+  uint32_t mxcsr; /* Holds the last MXCSR state when we entered Lua (unused for now) */
 } global_State;
 
 #define mainthread(g)	(&gcref(g->mainthref)->th)

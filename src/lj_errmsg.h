@@ -9,6 +9,9 @@
 ERRDEF(ERRMEM,	"not enough memory")
 ERRDEF(ERRERR,	"error in error handling")
 ERRDEF(ERRCPP,	"C++ exception")
+#if !defined(LJ_NO_SANDBOX)
+ERRDEF(ERRSBOX,	"action is restricted by sandbox")
+#endif
 
 /* Allocations. */
 ERRDEF(STROV,	"string length overflow")
