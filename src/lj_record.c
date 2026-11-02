@@ -1553,9 +1553,11 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
     TRef res = 0;
     TRef tr = emitir(IRT(IR_FLOAD, IRT_U8), ix->tab, IRFL_UDATA_FLAGS);
     emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, ud->flags));
+    tr = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_META);
+    GCtab *mt = gco2tab(gcref(ud->metatable));
+    emitir(IRTG(IR_EQ, IRT_TAB), tr, mt ? lj_ir_kgc(J, obj2gco(mt), IRT_TAB) : lj_ir_knull(J, IRT_TAB));
     if (ix->val == 0) { /* Indexed load */
       RecordIndex mtix = *ix;
-      GCtab *mt = gco2tab(gcref(ud->metatable));
       if (udata_isflagset(ud, LJ_UDATA_FLAG_USEMETAFORACCESS) && mt) {
         mtix.tab = lj_ir_kgc(J, obj2gco(mt), IRT_TAB);
         settabV(J->L, &mtix.tabv, mt);
